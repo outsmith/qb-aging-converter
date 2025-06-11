@@ -7,7 +7,7 @@ uploaded_file = st.file_uploader("Upload Aging Report CSV", type="csv")
 
 if uploaded_file:
     try:
-        # Manually assign correct headers after skipping title + blank row
+        # Load CSV, skipping the title and blank rows, with fixed column headers
         df = pd.read_csv(uploaded_file, skiprows=2, names=[
             "Date",
             "Transaction type",
@@ -15,17 +15,20 @@ if uploaded_file:
             "Vendor display name",
             "Vendor",
             "Due date",
-            "Past due",      # dropped later
-            "Amount",        # ignored
+            "Past due",
+            "Amount",        # <- this one gets dropped
             "Open balance"
         ])
 
-        # Remove repeated header rows or junk
+        # Remove header rows or junk
         df = df[df["Date"] != "Date"]
         df = df[pd.to_datetime(df["Date"], errors="coerce").notna()]
         df.reset_index(drop=True, inplace=True)
 
-        # Clean and rename only what we need — avoid duplicating 'Amount'
+        # Drop unneeded "Amount" column (keeps "Open balance" only)
+        df = df.drop(columns=["Amount"])
+
+        # Rename columns and select output
         output_df = df.rename(columns={
             "Date": "BillDate",
             "Due date": "DueDate",
@@ -33,10 +36,8 @@ if uploaded_file:
             "Num": "RefNumber"
         })[["Vendor", "BillDate", "DueDate", "Amount", "RefNumber"]]
 
-        # Clean Amount
+        # Clean and format
         output_df["Amount"] = output_df["Amount"].replace(",", "", regex=True).astype(float)
-
-        # Format dates
         output_df["BillDate"] = pd.to_datetime(output_df["BillDate"], errors="coerce").dt.strftime("%m/%d/%Y")
         output_df["DueDate"] = pd.to_datetime(output_df["DueDate"], errors="coerce").dt.strftime("%m/%d/%Y")
 
