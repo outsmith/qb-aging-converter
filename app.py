@@ -21,7 +21,13 @@ if uploaded_file:
         if missing:
             st.error(f"Missing columns: {', '.join(missing)}")
         else:
+            # Rename and select only the needed columns
             output_df = df.rename(columns=required_columns)[list(required_columns.values())]
+
+            # Drop any duplicate columns just in case
+            output_df = output_df.loc[:, ~output_df.columns.duplicated()]
+
+            # Clean up Amount column
             output_df["Amount"] = output_df["Amount"].replace(",", "", regex=True).astype(float)
 
             st.success("File converted successfully!")
