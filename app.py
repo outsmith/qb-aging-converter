@@ -21,14 +21,16 @@ if uploaded_file:
         if missing:
             st.error(f"Missing columns: {', '.join(missing)}")
         else:
-            # Rename and select only the needed columns
+            # Rename and select columns
             output_df = df.rename(columns=required_columns)[list(required_columns.values())]
-
-            # Drop any duplicate columns just in case
             output_df = output_df.loc[:, ~output_df.columns.duplicated()]
 
-            # Clean up Amount column
+            # Format Amount
             output_df["Amount"] = output_df["Amount"].replace(",", "", regex=True).astype(float)
+
+            # Convert dates to MM/DD/YYYY
+            output_df["BillDate"] = pd.to_datetime(output_df["BillDate"]).dt.strftime("%m/%d/%Y")
+            output_df["DueDate"] = pd.to_datetime(output_df["DueDate"]).dt.strftime("%m/%d/%Y")
 
             st.success("File converted successfully!")
             st.dataframe(output_df)
