@@ -7,28 +7,25 @@ uploaded_file = st.file_uploader("Upload Aging Report CSV", type="csv")
 
 if uploaded_file:
     try:
-        # Define column names from QuickBooks aging export
-        column_headers = [
+        # Manually assign correct headers after skipping title + blank row
+        df = pd.read_csv(uploaded_file, skiprows=2, names=[
             "Date",
             "Transaction type",
             "Num",
             "Vendor display name",
             "Vendor",
             "Due date",
-            "Past due",
-            "Amount",         # Ignored
+            "Past due",      # dropped later
+            "Amount",        # ignored
             "Open balance"
-        ]
+        ])
 
-        # Load CSV, skip title row, assign headers
-        df = pd.read_csv(uploaded_file, skiprows=1, names=column_headers)
-
-        # Remove duplicate header rows or totals
+        # Remove repeated header rows or junk
         df = df[df["Date"] != "Date"]
         df = df[pd.to_datetime(df["Date"], errors="coerce").notna()]
         df.reset_index(drop=True, inplace=True)
 
-        # Select and rename needed columns (no duplicate "Amount")
+        # Clean and rename only what we need — avoid duplicating 'Amount'
         output_df = df.rename(columns={
             "Date": "BillDate",
             "Due date": "DueDate",
@@ -39,13 +36,9 @@ if uploaded_file:
         # Clean Amount
         output_df["Amount"] = output_df["Amount"].replace(",", "", regex=True).astype(float)
 
-        # Format dates as MM/DD/YYYY
+        # Format dates
         output_df["BillDate"] = pd.to_datetime(output_df["BillDate"], errors="coerce").dt.strftime("%m/%d/%Y")
         output_df["DueDate"] = pd.to_datetime(output_df["DueDate"], errors="coerce").dt.strftime("%m/%d/%Y")
-
-        # Ensure strings for output
-        output_df["BillDate"] = output_df["BillDate"].astype(str)
-        output_df["DueDate"] = output_df["DueDate"].astype(str)
 
         st.success("File cleaned and converted successfully!")
         st.dataframe(output_df)
